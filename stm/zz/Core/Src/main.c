@@ -61,24 +61,41 @@ static void MX_ADC1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-int state=0;
+int state=1;
 char buffer[256];
-volatile uint8_t rx_complete = 0;
+uint8_t rxbuf[1];
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET){
-//		if(state==0){
-//			state=1;
-//		}
-		HAL_GPIO_TogglePin(GPIOA, 1 << 5);
-		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_6);
-		HAL_UART_Transmit(&huart1, "Hello\n", strlen("Hello\n"), 100);
-		HAL_UART_Transmit(&huart2, "Hello\n", strlen("Hello\n"), 100);
+		if(state==1){
+			state=3;
+		}else if(state==2){
+			state=4;
+		}else if(state==3){
+			state=1;
+		}else if(state==4){
+			state=2;
+		}
+
 	}
 }
+int tmp=0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart->Instance == USART1) {
-        rx_complete = 1;  // Set flag to indicate reception is complete
-        HAL_UART_Receive_IT(&huart1, (uint8_t *)buffer, sizeof(buffer)); // Re-enable interrupt
+	if (huart->Instance == USART1) {
+    	tmp++;
+        if(tmp>=2){
+        	tmp=0;
+        HAL_UART_Transmit(&huart2, (uint8_t *)"recived!\n", strlen("recived!\n"), 1000);
+        	if(state==1){
+        		state=3;
+        	}else if(state==2){
+        		state=4;
+        	}else if(state==3){
+        		state=1;
+        	}else if(state==4){
+        		state=2;
+        	}
+        }
+        HAL_UART_Receive_IT(&huart1, rxbuf, 1);
     }
 }
 /* USER CODE END 0 */
@@ -115,59 +132,60 @@ int main(void)
   MX_USART1_UART_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_UART_Receive_IT(&huart1, (uint8_t *)buffer, sizeof(buffer));
+  HAL_UART_Receive_IT(&huart1, rxbuf, 1);
+  //HAL_UART_Receive_IT(&huart2, (uint8_t *)buffer, sizeof(buffer));
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   int adcval = 0;
   char buf[256];
-  int state=0;
   int count=0;
   while (1)
 
   {
-	  if (rx_complete) {
-	          rx_complete = 0;  // Reset flag
-	          HAL_UART_Transmit(&huart2, (uint8_t *)buffer, strlen(buffer), 100); // Echo the received data
-	          HAL_UART_Transmit(&huart1, (uint8_t *)buffer, strlen(buffer), 100);
-	      }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 	  	  HAL_ADC_Start(&hadc1);
-	 	   if (HAL_ADC_PollForConversion(&hadc1, 1000) == HAL_OK) {
-	 		   // Read the ADC value
+	 	   if (HAL_ADC_PollForConversion(&hadc1, 1000) == HAL_OK) {// Read the ADC value
 	 		   adcval = HAL_ADC_GetValue(&hadc1);
 	 		   sprintf (buf, "LDR: %d, count: %d, state: %d\r\n" , adcval,count,state);
 	 		   //HAL_UART_Transmit(&huart2, buf, strlen(buf), 1000);
-
-	 		   HAL_Delay(200);
+	 		   HAL_Delay(100);
 	 	   }
-	 	   if(state == 0){
-	 		   if(adcval <= 8){
+	 	   if(count>=3){
+	 		   if(state==1){
+	 			   state=2;
+	 			   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
+	 			   //HAL_UART_Transmit(&huart1, "1\n", strlen("1\n"), 100);
+	 		   }else if(state==2){
+	 			   state=1;
+	 			   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_RESET);
+	 			  //HAL_UART_Transmit(&huart1, "0\n", strlen("0\n"), 100);
+	 		   }
+	 		   count=0;
+	 	   }
+	 	   if(state==0){ //IDLE
+	 		   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_RESET);
+	 	   }else if(state==1){
+	 		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_RESET);
+	 		   if(adcval <= 200){
 	 			   count++;
 	 		   }else{
 	 			   count=0;
 	 		   }
-	 	   }else{
-	 		   	if(adcval > 8){
+	 	   }else if(state==2){
+	 		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
+	 		   	if(adcval > 200){
 	 		   		count++;
 	 		   	}else{
 	 		   		count=0;
 	 		   	}
-	 	   }
-	 	   if(count>=3){
-	 		   if(state==0){
-	 			   state=1;
-	 			   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
-	 			   HAL_UART_Transmit(&huart1, "1\n", strlen("1\n"), 100);
-	 		   }else{
-	 			   state=0;
-	 			   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_RESET);
-	 			  HAL_UART_Transmit(&huart1, "0\n", strlen("0\n"), 100);
-	 		   }
-	 		   count=0;
+	 	   }else if(state==3){
+	 		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
+	 	   }else if(state==4){
+	 		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_RESET);
 	 	   }
   }
   /* USER CODE END 3 */

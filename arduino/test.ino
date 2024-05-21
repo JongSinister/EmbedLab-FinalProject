@@ -8,17 +8,19 @@ SoftwareSerial testSerial(RX_PIN, TX_PIN);
 
 int Sen = A0;
 int val = 0;
+int prevSoundTime = 0;
+int currentSoundTime = 0;
 
 void setup() {
   Serial.begin(9600);
   testSerial.begin(BAUD_RATE);
-  // if (!testSerial) {
-  //   Serial.println("Error initializing software serial!");
-  //   while (1) {
-  //     delay(1000);
-  //   }
-  // }
-
+  if (!testSerial) {
+    Serial.println("Error initializing software serial!");
+    while (1) {
+      delay(1000);
+    }
+  }
+  Serial.println("bruh");
 }
 
 void loop() {
@@ -27,9 +29,12 @@ void loop() {
     Serial.println(receivedString);
   }
   val = analogRead(Sen);
-  //Serial.println(val);
-  if(val>=1000){
-    Serial.println("kuay");
+  if (val >= 850) {
+    currentSoundTime = millis();
+    if (currentSoundTime - prevSoundTime >= 1000) {
+      prevSoundTime = currentSoundTime;
+      Serial.println("OK");
+      testSerial.println("O");
+    }
   }
-  //testSerial.println("bruh\n");
 }
