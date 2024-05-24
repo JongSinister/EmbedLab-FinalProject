@@ -7,7 +7,6 @@ var client = new Paho.MQTT.Client(
 
 client.onMessageArrived = onMessageArrived;
 
-
 // Function to fetch data from the API
 const getData = async () => {
   const url = "https://api.netpie.io/v2/device/shadow/data";

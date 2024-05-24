@@ -10,6 +10,10 @@ const lightBulbBtn = document.querySelector("#lightbulb-btn");
 const lightBulbIcon = document.querySelector("#lightbulb-icon");
 const manualControl = document.querySelector("#manual-control");
 
+const url = "https://api.netpie.io/v2/device/shadow/data";
+const clientID = "d98012c1-e9b1-4f37-8c4b-d7b6d4157672"; // replace with your actual client ID
+const token = "stWPQdAC4gt4YgkWvkKFJ3miCijbUybF"; // replace with your actual token
+
 let isDay = true;
 // let isDay = false;
 let systemOn = true;
@@ -110,10 +114,6 @@ async function onMessageArrived(message) {
 
 // Function to fetch data from the API
 const getData = async (timeout = 2000) => {
-  const url = "https://api.netpie.io/v2/device/shadow/data";
-  const clientID = "d98012c1-e9b1-4f37-8c4b-d7b6d4157672"; // replace with your actual client ID
-  const token = "stWPQdAC4gt4YgkWvkKFJ3miCijbUybF"; // replace with your actual token
-
   const requestOptions = {
     method: "GET",
     headers: {
@@ -124,14 +124,14 @@ const getData = async (timeout = 2000) => {
 
   // Create a promise that rejects if the request times out
   const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Request timed out')), timeout)
+    setTimeout(() => reject(new Error("Request timed out")), timeout)
   );
 
   try {
     // Fetch data with a timeout
     const response = await Promise.race([
       fetch(url, requestOptions),
-      timeoutPromise
+      timeoutPromise,
     ]);
 
     if (!response.ok) {
@@ -151,10 +151,55 @@ const getData = async (timeout = 2000) => {
 
 // Call the getDataWithTimeout function with the desired timeout (in milliseconds)
 getData(2000)
-  .then(state => {
+  .then((state) => {
     console.log("State:", state);
   })
-  .catch(error => {
+  .catch((error) => {
     console.error("Error:", error);
   });
 
+const postData = async (timeout = 2000) => {
+  const reqOpt = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Device ${clientID}:${token}`,
+    },
+    body: JSON.stringify({
+      state: state,
+    }),
+  };
+
+  // Create a promise that rejects if the request times out
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("Request timed out")), timeout)
+  );
+
+  try {
+    // Fetch data with a timeout
+    const response = await Promise.race([fetch(url, reqOpt), timeoutPromise]);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = response.json().data;
+    console.log(data);
+    // const data = await response.json();
+    // state = data.data.state;
+
+    // console.log(data);
+    // return data; // Returning only the state for simplicity, you can return data if needed
+  } catch (error) {
+    console.error("Error fetching shadow data:", error);
+    throw error;
+  }
+};
+
+postData(2000)
+  .then((state) => {
+    console.log("State:", state);
+  })
+  .catch((error) => {
+    console.error("Error:", error);
+  });
