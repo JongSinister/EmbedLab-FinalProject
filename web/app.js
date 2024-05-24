@@ -16,9 +16,10 @@ const token = "stWPQdAC4gt4YgkWvkKFJ3miCijbUybF"; // replace with your actual to
 
 let isDay = true;
 // let isDay = false;
-let systemOn = false;
+let systemOn = true;
 let lightsOn = false;
 let state = 0;
+let prevstate = -1;
 
 function mqttSend(topic, msg) {
   var message = new Paho.MQTT.Message(msg);
@@ -35,31 +36,76 @@ function setStatus() {
 }
 
 function setLight() {
+  prevstate = state;
   if (!systemOn) {
+    lightBulbBtn.innerHTML = `<span id="lightbulb-icon" class="majesticons--lightbulb-shine-line"></span>`;
+    lightDesc.innerHTML = `<span class="fxemoji--lightbulb-off"></span>`;
     state = 0;
-    console.log(state);
-    postData();
-    mqttSend("@msg/temp", "0");
+    mqttSend("@msg/temp", `{"data":{"state":0}}`);
     return;
   }
   if (lightsOn) {
     lightBulbBtn.innerHTML = `<span id="lightbulb-icon" class="majesticons--lightbulb-shine-line"></span>`;
-    lightDesc.innerHTML = "";
     lightDesc.innerHTML = `<span class="fxemoji--lightbulb-off"></span>`;
     lightsOn = false;
-    //console.log("HI");
-    //mqttSend("@msg/temp", "bruh");
-    //client.publish("@msg/temp", "Hello mqtt")
+    if (state == 2) {
+      state = 4;
+    } else if (state == 3) {
+      state = 1;
+    }
+  } else {
+    lightBulbBtn.innerHTML = `<span id="lightbulb-icon" class="majesticons--lightbulb-shine"></span>`;
+    lightDesc.innerHTML = `<span class="fxemoji--lightbulb-on"></span>`;
+    lightsOn = true;
+    if (state == 1) {
+      state = 3;
+    } else if (state == 4) {
+      state = 2;
+    }
+  }
+  if (state == 1) {
+    lightBulbBtn.innerHTML = `<span id="lightbulb-icon" class="majesticons--lightbulb-shine-line"></span>`;
+    lightDesc.innerHTML = `<span class="fxemoji--lightbulb-off"></span>`;
+    lightsOn = false;
+  } else if (state == 2) {
+    lightBulbBtn.innerHTML = `<span id="lightbulb-icon" class="majesticons--lightbulb-shine"></span>`;
+    lightDesc.innerHTML = `<span class="fxemoji--lightbulb-on"></span>`;
+    lightsOn = true;
+  }
+
+  mqttSend("@msg/temp", `{"data":{"state":${state}}`);
+  postData();
+  console.log(state);
+}
+
+function setLightFromBoard() {
+  if (!systemOn) {
+    lightBulbBtn.innerHTML = `<span id="lightbulb-icon" class="majesticons--lightbulb-shine-line"></span>`;
+    lightDesc.innerHTML = `<span class="fxemoji--lightbulb-off"></span>`;
+    state = 0;
+    mqttSend("@msg/temp", `{"data":{"state":0}}`);
+    return;
+  }
+  if (lightsOn) {
+    lightBulbBtn.innerHTML = `<span id="lightbulb-icon" class="majesticons--lightbulb-shine-line"></span>`;
+    lightDesc.innerHTML = `<span class="fxemoji--lightbulb-off"></span>`;
+    lightsOn = false;
     state = 1;
   } else {
     lightBulbBtn.innerHTML = `<span id="lightbulb-icon" class="majesticons--lightbulb-shine"></span>`;
-    lightDesc.innerHTML = "";
     lightDesc.innerHTML = `<span class="fxemoji--lightbulb-on"></span>`;
     lightsOn = true;
-    //mqttSend("@msg/temp", "bruh");
     state = 2;
   }
-  console.log(state);
+  if (state == 1) {
+    lightBulbBtn.innerHTML = `<span id="lightbulb-icon" class="majesticons--lightbulb-shine-line"></span>`;
+    lightDesc.innerHTML = `<span class="fxemoji--lightbulb-off"></span>`;
+    lightsOn = false;
+  } else if (state == 2) {
+    lightBulbBtn.innerHTML = `<span id="lightbulb-icon" class="majesticons--lightbulb-shine"></span>`;
+    lightDesc.innerHTML = `<span class="fxemoji--lightbulb-on"></span>`;
+    lightsOn = true;
+  }
   postData();
 }
 
@@ -68,13 +114,31 @@ function setSystem() {
     systemBtn.innerHTML = `<span class="lucide--power-off"></span>`;
     systemDesc.innerText = "Off";
     statusBar.style.display = "none";
+    state = 0;
     systemOn = false;
+    if (lightsOn) {
+      console.log("C");
+      setLight();
+    }
   } else {
     systemBtn.innerHTML = `<span class="lucide--power"></span>`;
     systemDesc.innerText = "On";
     statusBar.style.display = "block";
+    state = 1;
     systemOn = true;
   }
+  postData();
+  console.log(state);
+  if (state == 1) {
+    lightBulbBtn.innerHTML = `<span id="lightbulb-icon" class="majesticons--lightbulb-shine-line"></span>`;
+    lightDesc.innerHTML = `<span class="fxemoji--lightbulb-off"></span>`;
+    lightsOn = false;
+  } else if (state == 2) {
+    lightBulbBtn.innerHTML = `<span id="lightbulb-icon" class="majesticons--lightbulb-shine"></span>`;
+    lightDesc.innerHTML = `<span class="fxemoji--lightbulb-on"></span>`;
+    lightsOn = true;
+  }
+  mqttSend("@msg/temp", `{"data":{"state":${state}}`);
 }
 
 setStatus();
@@ -110,17 +174,15 @@ function doFail(e) {
 }
 
 async function onMessageArrived(message) {
-  //document.getElementById("show").innerHTML = message.payloadString;
-  //state = message.payloadString[18];
   const data = await getData();
-  console.log(state);
-  if (state == 1) {
-    setLight();
+  if (state == 1 && prevstate != 3) {
+    setLightFromBoard();
     lightsOn = false;
-  } else if (state == 2) {
-    setLight();
+  } else if (state == 2 && prevstate != 4) {
+    setLightFromBoard();
     lightsOn = true;
   }
+  console.log(state);
 }
 
 // Function to fetch data from the API
@@ -152,7 +214,7 @@ const getData = async (timeout = 2000) => {
     const data = await response.json();
     state = data.data.state;
 
-    console.log(data);
+    //console.log(data);
     return data; // Returning only the state for simplicity, you can return data if needed
   } catch (error) {
     console.error("Error fetching shadow data:", error);
@@ -184,14 +246,13 @@ const postData = async () => {
   };
   try {
     const response = await fetch(url, reqOpt);
-    console.log("HI4");
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
     const data = await response.json();
-    console.log("Success:", data);
+    console.log("POST Success:", data);
     return data;
   } catch (error) {
-    console.error("Error:", error);
+    console.error("POST Error:", error);
   }
 };

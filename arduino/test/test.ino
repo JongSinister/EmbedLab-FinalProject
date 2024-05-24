@@ -4,11 +4,12 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 
-ADC_MODE(ADC_TOUT);
+//ADC_MODE(ADC_TOUT);
 SoftwareSerial testSerial(D7, D8);
+SoftwareSerial audioSerial(D5, D6);
 
-const char* ssid = "prompt";
-const char* password = "12345678";
+const char* ssid = "Fit";
+const char* password = "123456123456";
 
 const char* mqtt_server = "broker.netpie.io";
 const int mqtt_port = 1883;
@@ -21,13 +22,16 @@ PubSubClient client(espClient);
 
 int Sen = A0;
 int val = 0;
+int state=1;
 unsigned long prevSoundTime = 0;
 unsigned long currentSoundTime = 0;
 String receivedString = "0";
+String audioString = "0";
 
 void setup() {
   Serial.begin(9600);  // Set baud rate to 9600
   testSerial.begin(115200);
+  audioSerial.begin(115200);
 
   Serial.print("Connecting to ");
   Serial.println(ssid);
@@ -75,7 +79,7 @@ void reconnect() {
 }
 
 void loop() {
-  testSerial.println("I");
+  //testSerial.println("I");
   if (WiFi.status() != WL_CONNECTED) {
     reconnect();
   }
@@ -83,39 +87,47 @@ void loop() {
     reconnect();
   }
   client.loop();
-  //val = analogRead(Sen);
   if (testSerial.available()) {
     char msg[100];
     receivedString = testSerial.readStringUntil('\n');
-    String data = "{\"data\":{\"state\": " + String(receivedString) + "}}";
+    String data = "{\"data\":{\"state\":" + String(receivedString) + "}}";
     Serial.println(data);
     data.toCharArray(msg, (data.length() + 1));
     client.publish("@shadow/data/update", msg);
     client.publish("@msg/temp", msg);
   }
-  // if (val >= 850) {
-  //   currentSoundTime = millis();
-  //   if (currentSoundTime - prevSoundTime >= 1000) {
-  //     prevSoundTime = currentSoundTime;
-  //     //Serial.println("LED SOUND TOGGLE");
-  //     testSerial.println("O");
-  //   }
-  // }
+
+  if (audioSerial.available()) {
+    char msg[100];
+    audioString = audioSerial.readStringUntil('\n');
+    if(state==1){
+      state=3;
+    }else if(state==2){
+      state=4;
+    }else if(state==3){
+      state=1;
+    }else if(state==4){
+      state=2;
+    }
+    Serial.println(String(state));
+    String data = "{\"data\":{\"state\":" + String(state) + "}}";
+    Serial.println(data);
+    data.toCharArray(msg, (data.length() + 1));
+    client.publish("@shadow/data/update", msg);
+    client.publish("@msg/temp", msg);
+  }
+
+
   delay(1);
 }
 
 /* CALLBACK FUNCTION */
 void callback(char* topic, byte* payload, unsigned int length) {
-  // Serial.print("Message arrived [");
-  // Serial.print(topic);
-  // Serial.print("] ");
   String message;
   for (unsigned int i = 0; i < length; i++) {
     message += (char)payload[i];
   }
-  Serial.println(message+"adasd");
-  if(message==String("0")){
-    testSerial.println("0");
-  }
-  Serial.println(message);
+  Serial.println("From website" + message);
+  state=message[17]-'0';
+  testSerial.print(message[17]);
 }
