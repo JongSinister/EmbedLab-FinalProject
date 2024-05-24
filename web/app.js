@@ -2,7 +2,7 @@ const desc = document.querySelector(".desc");
 const systemDesc = document.querySelector("#system-desc");
 const systemBar = document.querySelector("#system-bar");
 const statusDesc = document.querySelector("#status-desc");
-const statusBar = document.querySelector("#status-bar");
+//const //statusBar = document.querySelector("#status-bar");
 const lightDesc = document.querySelector("#light-desc");
 const systemBtn = document.querySelector("#system-btn");
 const systemIcon = document.querySelector("#system-icon");
@@ -112,8 +112,8 @@ function setLightFromBoard() {
 function setSystem() {
   if (systemOn) {
     systemBtn.innerHTML = `<span class="lucide--power-off"></span>`;
-    systemDesc.innerText = "Off";
-    statusBar.style.display = "none";
+    systemDesc.innerText = "Off"//;
+    //statusBar.style.display = "none";
     state = 0;
     systemOn = false;
     if (lightsOn) {
@@ -122,8 +122,8 @@ function setSystem() {
     }
   } else {
     systemBtn.innerHTML = `<span class="lucide--power"></span>`;
-    systemDesc.innerText = "On";
-    statusBar.style.display = "block";
+    systemDesc.innerText = "On"//;
+    //statusBar.style.display = "block";
     state = 1;
     systemOn = true;
   }
@@ -138,10 +138,10 @@ function setSystem() {
     lightDesc.innerHTML = `<span class="fxemoji--lightbulb-on"></span>`;
     lightsOn = true;
   }
-  mqttSend("@msg/temp", `{"data":{"state":${state}}`);
+  //mqttSend("@msg/temp", `{"data":{"state":${state}}`);
 }
 
-setStatus();
+//setStatus();
 
 systemBtn.addEventListener("click", () => setSystem());
 
@@ -176,9 +176,11 @@ function doFail(e) {
 async function onMessageArrived(message) {
   const data = await getData();
   if (state == 1 && prevstate != 3) {
+    await sleep(500);
     setLightFromBoard();
     lightsOn = false;
   } else if (state == 2 && prevstate != 4) {
+    await sleep(500);
     setLightFromBoard();
     lightsOn = true;
   }
@@ -256,3 +258,8 @@ const postData = async () => {
     console.error("POST Error:", error);
   }
 };
+
+
+function sleep(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}

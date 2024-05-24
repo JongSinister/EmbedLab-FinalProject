@@ -111,7 +111,7 @@ void loop() {
     }
     Serial.println(String(state));
     String data = "{\"data\":{\"state\":" + String(state) + "}}";
-    Serial.println(data);
+    Serial.println("sound :"+data);
     data.toCharArray(msg, (data.length() + 1));
     client.publish("@shadow/data/update", msg);
     client.publish("@msg/temp", msg);
