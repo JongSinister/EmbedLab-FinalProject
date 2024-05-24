@@ -63,6 +63,8 @@ static void MX_USART6_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+uint8_t buf[256];
+int idx = 0;
 int state=1;
 char buffer[2];
 uint8_t rxbuf[1];
@@ -83,24 +85,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 int tmp=0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if(huart->Instance == USART1){
-		HAL_UART_Transmit(&huart2, (uint8_t *)"recived 0!\n", strlen("recived 0!\n"), 1000);
+		state = rxbuf[0] - '0';
+		sprintf(buf, "%d\n", state);
+		HAL_UART_Transmit(&huart2, (uint8_t*)buf, 1, 10);
+		memset(rxbuf, 0, sizeof(rxbuf));
 		HAL_UART_Receive_IT(&huart1, rxbuf, 1);
-	}else if (huart->Instance == USART6) {
-        HAL_UART_Transmit(&huart2, (uint8_t *)"recived!\n", strlen("recived!\n"), 1000);
-        	if(state==1){
-        		state=3;
-        	}else if(state==2){
-        		state=4;
-        	}else if(state==3){
-        		state=1;
-        	}else if(state==4){
-        		state=2;
-        	}
-        sprintf (buffer,"%d\n",state);
-        HAL_UART_Transmit(&huart2, (uint8_t*)buffer, 2, 1000);
-        }
-        //HAL_UART_Transmit(&huart1, "KUY\n", strlen("KUY\n"), 1000);
-        HAL_UART_Receive_IT(&huart6, rxbuf, 1);
+		}
     }
 /* USER CODE END 0 */
 
@@ -150,9 +140,9 @@ int main(void)
   while (1)
 
   {
-	if(HAL_UART_Receive(&huart1, buf, 256, 100)==HAL_OK){
-		HAL_UART_Transmit(&huart2, (uint8_t *)"kuy!\n", strlen("kuy!\n"), 1000);
-	}
+//	if(HAL_UART_Receive(&huart1, buf, 256, 100)==HAL_OK){
+//		HAL_UART_Transmit(&huart2, (uint8_t *)"kuy!\n", strlen("kuy!\n"), 1000);
+//	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -160,7 +150,7 @@ int main(void)
 	 	   if (HAL_ADC_PollForConversion(&hadc1, 1000) == HAL_OK) {// Read the ADC value
 	 		   adcval = HAL_ADC_GetValue(&hadc1);
 	 		   sprintf (buf, "LDR: %d, count: %d, state: %d\r\n" , adcval,count,state);
-	 		   //HAL_UART_Transmit(&huart2, buf, strlen(buf), 1000);
+	 		   HAL_UART_Transmit(&huart2, buf, strlen(buf), 1000);
 	 		   HAL_Delay(100);
 	 	   }
 	 	   if(count>=3){
