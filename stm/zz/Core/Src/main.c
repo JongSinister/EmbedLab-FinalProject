@@ -44,6 +44,7 @@ ADC_HandleTypeDef hadc1;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
+UART_HandleTypeDef huart6;
 
 /* USER CODE BEGIN PV */
 
@@ -55,6 +56,7 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_USART6_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -80,11 +82,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 }
 int tmp=0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	char data[256];
-	if (huart->Instance == USART1) {
-    	tmp++;
-        if(tmp>=2){
-        	tmp=0;
+	if(huart->Instance == USART1){
+		HAL_UART_Transmit(&huart2, (uint8_t *)"recived 0!\n", strlen("recived 0!\n"), 1000);
+		HAL_UART_Receive_IT(&huart1, rxbuf, 1);
+	}else if (huart->Instance == USART6) {
         HAL_UART_Transmit(&huart2, (uint8_t *)"recived!\n", strlen("recived!\n"), 1000);
         	if(state==1){
         		state=3;
@@ -96,12 +97,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
         		state=2;
         	}
         sprintf (buffer,"%d\n",state);
-        HAL_UART_Transmit(&huart1, (uint8_t*)buffer, 2, 1000);
+        HAL_UART_Transmit(&huart2, (uint8_t*)buffer, 2, 1000);
         }
         //HAL_UART_Transmit(&huart1, "KUY\n", strlen("KUY\n"), 1000);
-        HAL_UART_Receive_IT(&huart1, rxbuf, 1);
+        HAL_UART_Receive_IT(&huart6, rxbuf, 1);
     }
-}
 /* USER CODE END 0 */
 
 /**
@@ -135,8 +135,10 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART1_UART_Init();
   MX_ADC1_Init();
+  MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_UART_Receive_IT(&huart1, rxbuf, 1);
+  HAL_UART_Receive_IT(&huart6, rxbuf, 1);
   //HAL_UART_Receive_IT(&huart2, (uint8_t *)buffer, sizeof(buffer));
   /* USER CODE END 2 */
 
@@ -148,6 +150,9 @@ int main(void)
   while (1)
 
   {
+	if(HAL_UART_Receive(&huart1, buf, 256, 100)==HAL_OK){
+		HAL_UART_Transmit(&huart2, (uint8_t *)"kuy!\n", strlen("kuy!\n"), 1000);
+	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -155,7 +160,7 @@ int main(void)
 	 	   if (HAL_ADC_PollForConversion(&hadc1, 1000) == HAL_OK) {// Read the ADC value
 	 		   adcval = HAL_ADC_GetValue(&hadc1);
 	 		   sprintf (buf, "LDR: %d, count: %d, state: %d\r\n" , adcval,count,state);
-	 		   HAL_UART_Transmit(&huart2, buf, strlen(buf), 1000);
+	 		   //HAL_UART_Transmit(&huart2, buf, strlen(buf), 1000);
 	 		   HAL_Delay(100);
 	 	   }
 	 	   if(count>=3){
@@ -362,6 +367,39 @@ static void MX_USART2_UART_Init(void)
 }
 
 /**
+  * @brief USART6 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART6_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART6_Init 0 */
+
+  /* USER CODE END USART6_Init 0 */
+
+  /* USER CODE BEGIN USART6_Init 1 */
+
+  /* USER CODE END USART6_Init 1 */
+  huart6.Instance = USART6;
+  huart6.Init.BaudRate = 115200;
+  huart6.Init.WordLength = UART_WORDLENGTH_8B;
+  huart6.Init.StopBits = UART_STOPBITS_1;
+  huart6.Init.Parity = UART_PARITY_NONE;
+  huart6.Init.Mode = UART_MODE_TX_RX;
+  huart6.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart6.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART6_Init 2 */
+
+  /* USER CODE END USART6_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -395,7 +433,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 2, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */

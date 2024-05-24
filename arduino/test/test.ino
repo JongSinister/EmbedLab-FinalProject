@@ -7,8 +7,8 @@
 ADC_MODE(ADC_TOUT);
 SoftwareSerial testSerial(D7, D8);
 
-const char* ssid = "Fit";
-const char* password = "123456123456";
+const char* ssid = "prompt";
+const char* password = "12345678";
 
 const char* mqtt_server = "broker.netpie.io";
 const int mqtt_port = 1883;
@@ -75,6 +75,7 @@ void reconnect() {
 }
 
 void loop() {
+  testSerial.println("I");
   if (WiFi.status() != WL_CONNECTED) {
     reconnect();
   }
@@ -105,12 +106,16 @@ void loop() {
 
 /* CALLBACK FUNCTION */
 void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
+  // Serial.print("Message arrived [");
+  // Serial.print(topic);
+  // Serial.print("] ");
   String message;
   for (unsigned int i = 0; i < length; i++) {
     message += (char)payload[i];
+  }
+  Serial.println(message+"adasd");
+  if(message==String("0")){
+    testSerial.println("0");
   }
   Serial.println(message);
 }

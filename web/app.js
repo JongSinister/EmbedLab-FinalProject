@@ -16,7 +16,7 @@ const token = "stWPQdAC4gt4YgkWvkKFJ3miCijbUybF"; // replace with your actual to
 
 let isDay = true;
 // let isDay = false;
-let systemOn = true;
+let systemOn = false;
 let lightsOn = false;
 let state = 0;
 
@@ -35,21 +35,32 @@ function setStatus() {
 }
 
 function setLight() {
+  if (!systemOn) {
+    state = 0;
+    console.log(state);
+    postData();
+    mqttSend("@msg/temp", "0");
+    return;
+  }
   if (lightsOn) {
     lightBulbBtn.innerHTML = `<span id="lightbulb-icon" class="majesticons--lightbulb-shine-line"></span>`;
     lightDesc.innerHTML = "";
     lightDesc.innerHTML = `<span class="fxemoji--lightbulb-off"></span>`;
     lightsOn = false;
     //console.log("HI");
-    mqttSend("@msg/temp", "bruh");
+    //mqttSend("@msg/temp", "bruh");
     //client.publish("@msg/temp", "Hello mqtt")
+    state = 1;
   } else {
     lightBulbBtn.innerHTML = `<span id="lightbulb-icon" class="majesticons--lightbulb-shine"></span>`;
     lightDesc.innerHTML = "";
     lightDesc.innerHTML = `<span class="fxemoji--lightbulb-on"></span>`;
     lightsOn = true;
     //mqttSend("@msg/temp", "bruh");
+    state = 2;
   }
+  console.log(state);
+  postData();
 }
 
 function setSystem() {
@@ -158,7 +169,7 @@ getData(2000)
     console.error("Error:", error);
   });
 
-const postData = async (timeout = 2000) => {
+const postData = async () => {
   const reqOpt = {
     method: "POST",
     headers: {
@@ -166,40 +177,21 @@ const postData = async (timeout = 2000) => {
       Authorization: `Device ${clientID}:${token}`,
     },
     body: JSON.stringify({
-      state: state,
+      data: {
+        state: state.toString(),
+      },
     }),
   };
-
-  // Create a promise that rejects if the request times out
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error("Request timed out")), timeout)
-  );
-
   try {
-    // Fetch data with a timeout
-    const response = await Promise.race([fetch(url, reqOpt), timeoutPromise]);
-
+    const response = await fetch(url, reqOpt);
+    console.log("HI4");
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! Status: ${response.status}`);
     }
-
-    const data = response.json().data;
-    console.log(data);
-    // const data = await response.json();
-    // state = data.data.state;
-
-    // console.log(data);
-    // return data; // Returning only the state for simplicity, you can return data if needed
+    const data = await response.json();
+    console.log("Success:", data);
+    return data;
   } catch (error) {
-    console.error("Error fetching shadow data:", error);
-    throw error;
+    console.error("Error:", error);
   }
 };
-
-postData(2000)
-  .then((state) => {
-    console.log("State:", state);
-  })
-  .catch((error) => {
-    console.error("Error:", error);
-  });
