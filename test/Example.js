@@ -13,12 +13,15 @@ const getData = async () => {
   const clientID = "06e7382f-7e1e-4662-87bc-a87fbb467ad0"; // replace with your actual client ID
   const token = "RJiea2G6m64LdDmtYBJgMrL7m5H9Hu5A"; // replace with your actual token
 
-  const headers = new Headers();
-  headers.append("Authorization", `Basic ${btoa(`${clientID}:${token}`)}`);
+  // const headers = new Headers();
+  // headers.append("Authorization", `Basic ${btoa(`${clientID}:${token}`)}`);
 
   const requestOptions = {
     method: "GET",
-    headers: headers,
+    headers: {
+      Authorization: "Basic",
+      ClientID: token,
+    },
     redirect: "follow",
   };
 
