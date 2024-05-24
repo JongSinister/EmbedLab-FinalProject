@@ -7,44 +7,48 @@ const lightDesc = document.querySelector("#light-desc");
 const systemBtn = document.querySelector("#system-btn");
 const systemIcon = document.querySelector("#system-icon");
 const lightBulbBtn = document.querySelector("#lightbulb-btn");
-const lightBulbIcon = document.querySelector("#lightblub-icon");
+const lightBulbIcon = document.querySelector("#lightbulb-icon");
 const manualControl = document.querySelector("#manual-control");
 
-// let isDay = true;
-let isDay = false;
+let isDay = true;
+// let isDay = false;
 let systemOn = true;
 let lightsOn = false;
+let state = 0;
 
-// settingBtn.addEventListener("click", () => {
-//   const manualContainer = document.querySelector("#manual-control");
-//   if (manualOn) {
-//     settingBtn.innerText = "Manual";
-//     manualContainer.style.display = "none";
-//     manualOn = false;
-//   } else {
-//     settingBtn.innerText = "Auto";
-//     manualContainer.style.display = "flex";
-//     manualOn = true;
-//   }
-// });
-
-if (isDay) {
-  statusDesc.innerText = "Manual";
-} else {
-  statusDesc.innerText = "Auto";
+function mqttSend(topic, msg) {
+  var message = new Paho.MQTT.Message(msg);
+  message.destinationName = topic;
+  client.send(message);
 }
 
-if (lightsOn) {
-  lightBulbBtn.innerHTML = `<span id="lightblub-icon" class="majesticons--lightbulb-shine"></span>`;
-  lightDesc.innerHTML = "";
-  lightDesc.innerHTML = `<span class="fxemoji--lightbulb-on"></span>`;
-} else {
-  lightBulbBtn.innerHTML = `<span id="lightblub-icon" class="majesticons--lightbulb-shine-line"></span>`;
-  lightDesc.innerHTML = "";
-  lightDesc.innerHTML = `<span class="fxemoji--lightbulb-off"></span>`;
+function setStatus() {
+  if (isDay) {
+    statusDesc.innerText = "Manual";
+  } else {
+    statusDesc.innerText = "Auto";
+  }
 }
 
-systemBtn.addEventListener("click", () => {
+function setLight() {
+  if (lightsOn) {
+    lightBulbBtn.innerHTML = `<span id="lightbulb-icon" class="majesticons--lightbulb-shine-line"></span>`;
+    lightDesc.innerHTML = "";
+    lightDesc.innerHTML = `<span class="fxemoji--lightbulb-off"></span>`;
+    lightsOn = false;
+    //console.log("HI");
+    mqttSend("@msg/temp", "bruh");
+    //client.publish("@msg/temp", "Hello mqtt")
+  } else {
+    lightBulbBtn.innerHTML = `<span id="lightbulb-icon" class="majesticons--lightbulb-shine"></span>`;
+    lightDesc.innerHTML = "";
+    lightDesc.innerHTML = `<span class="fxemoji--lightbulb-on"></span>`;
+    lightsOn = true;
+    //mqttSend("@msg/temp", "bruh");
+  }
+}
+
+function setSystem() {
   if (systemOn) {
     systemBtn.innerHTML = `<span class="lucide--power-off"></span>`;
     systemDesc.innerText = "Off";
@@ -56,21 +60,13 @@ systemBtn.addEventListener("click", () => {
     statusBar.style.display = "block";
     systemOn = true;
   }
-});
+}
 
-lightBulbBtn.addEventListener("click", () => {
-  if (lightsOn) {
-    lightBulbBtn.innerHTML = `<span id="lightblub-icon" class="majesticons--lightbulb-shine-line"></span>`;
-    lightDesc.innerHTML = "";
-    lightDesc.innerHTML = `<span class="fxemoji--lightbulb-off"></span>`;
-    lightsOn = false;
-  } else {
-    lightBulbBtn.innerHTML = `<span id="lightblub-icon" class="majesticons--lightbulb-shine"></span>`;
-    lightDesc.innerHTML = "";
-    lightDesc.innerHTML = `<span class="fxemoji--lightbulb-on"></span>`;
-    lightsOn = true;
-  }
-});
+setStatus();
+
+systemBtn.addEventListener("click", () => setSystem());
+
+lightBulbBtn.addEventListener("click", () => setLight());
 
 var client = new Paho.MQTT.Client(
   "mqtt.netpie.io",
@@ -98,13 +94,67 @@ function doFail(e) {
   console.log(e);
 }
 
-function onMessageArrived(message) {
+async function onMessageArrived(message) {
   //document.getElementById("show").innerHTML = message.payloadString;
-  let state = message.payloadString[18];
+  //state = message.payloadString[18];
+  const data = await getData();
   console.log(state);
   if (state == 1) {
+    setLight();
     lightsOn = false;
   } else if (state == 2) {
-    lightOn = true;
+    setLight();
+    lightsOn = true;
   }
 }
+
+// Function to fetch data from the API
+const getData = async (timeout = 2000) => {
+  const url = "https://api.netpie.io/v2/device/shadow/data";
+  const clientID = "d98012c1-e9b1-4f37-8c4b-d7b6d4157672"; // replace with your actual client ID
+  const token = "stWPQdAC4gt4YgkWvkKFJ3miCijbUybF"; // replace with your actual token
+
+  const requestOptions = {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Device ${clientID}:${token}`,
+    },
+  };
+
+  // Create a promise that rejects if the request times out
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Request timed out')), timeout)
+  );
+
+  try {
+    // Fetch data with a timeout
+    const response = await Promise.race([
+      fetch(url, requestOptions),
+      timeoutPromise
+    ]);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    state = data.data.state;
+
+    console.log(data);
+    return data; // Returning only the state for simplicity, you can return data if needed
+  } catch (error) {
+    console.error("Error fetching shadow data:", error);
+    throw error;
+  }
+};
+
+// Call the getDataWithTimeout function with the desired timeout (in milliseconds)
+getData(2000)
+  .then(state => {
+    console.log("State:", state);
+  })
+  .catch(error => {
+    console.error("Error:", error);
+  });
+

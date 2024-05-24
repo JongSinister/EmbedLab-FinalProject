@@ -7,19 +7,19 @@ var client = new Paho.MQTT.Client(
 
 client.onMessageArrived = onMessageArrived;
 
+
 // Function to fetch data from the API
 const getData = async () => {
   const url = "https://api.netpie.io/v2/device/shadow/data";
-  const clientID = "06e7382f-7e1e-4662-87bc-a87fbb467ad0"; // replace with your actual client ID
-  const token = "RJiea2G6m64LdDmtYBJgMrL7m5H9Hu5A"; // replace with your actual token
-
-  const headers = new Headers();
-  headers.append("Authorization", `Basic ${btoa(`${clientID}:${token}`)}`);
+  const clientID = "d98012c1-e9b1-4f37-8c4b-d7b6d4157672"; // replace with your actual client ID
+  const token = "stWPQdAC4gt4YgkWvkKFJ3miCijbUybF"; // replace with your actual token
 
   const requestOptions = {
     method: "GET",
-    headers: headers,
-    redirect: "follow",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Device ${clientID}:${token}`,
+    },
   };
 
   try {
@@ -28,7 +28,10 @@ const getData = async () => {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
+    let stateValue = data.data.state;
     console.log(data);
+    console.log(stateValue);
+    // console.log(data.toString);
     return data;
   } catch (error) {
     console.error("Error fetching shadow data:", error);
