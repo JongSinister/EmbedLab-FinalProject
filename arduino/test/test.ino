@@ -8,8 +8,8 @@
 SoftwareSerial testSerial(D7, D8);
 SoftwareSerial audioSerial(D5, D6);
 
-const char* ssid = "Fit";
-const char* password = "123456123456";
+const char* ssid = "";
+const char* password = "";
 
 const char* mqtt_server = "broker.netpie.io";
 const int mqtt_port = 1883;
